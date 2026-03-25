@@ -5,13 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lavaş Fırın Yönetim Sistemi</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div id="app">
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-box">
+            <div class="login-header">
+                <img src="logo.png" alt="Hatay Lavaş Dünyası">
+                <h2>Lavaş Fırın Otomasyon</h2>
+            </div>
+            
+            <div class="login-tabs">
+                <button class="login-tab active" data-role="customer">Müşteri Girişi</button>
+                <button class="login-tab" data-role="admin">Fırın Girişi</button>
+            </div>
+
+            <form id="login-form">
+                <input type="hidden" id="login-role" value="customer">
+                <div class="form-group">
+                    <label id="username-label">Telefon Numaranız</label>
+                    <input type="text" id="login-username" required placeholder="5XX XXX XX XX">
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="login-password" required placeholder="••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
+                <p id="login-error" class="error-text hidden">Hatalı giriş, lütfen bilgilerinizi kontrol edin.</p>
+            </form>
+            
+            <div class="login-footer">
+                <p>Yardım için: 05XX XXX XX XX</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header" style="justify-content: center; padding: 1rem;">

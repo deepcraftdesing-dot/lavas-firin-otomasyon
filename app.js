@@ -1,6 +1,6 @@
 // Application Logic
-document.addEventListener('DOMContentLoaded', () => {
-    init();
+document.addEventListener('DOMContentLoaded', async () => {
+    await init();
 });
 
 const state = {
@@ -11,66 +11,130 @@ const state = {
     }
 };
 
-function init() {
-    migrateData();
+async function init() {
     setupNavigation();
     setupEventListeners();
-    renderPage('dashboard');
+    setupLoginEventListeners();
     updateDate();
+    
+    const isAuthenticated = await Data.checkAuth();
+    if (isAuthenticated) {
+        await showApp();
+    } else {
+        showLogin();
+    }
+}
+
+function showLogin() {
+    document.getElementById('login-overlay').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
+}
+
+async function showApp() {
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    
+    const sidebar = document.querySelector('.sidebar');
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    if (Data.isAdmin) {
+        sidebar.classList.remove('hidden');
+        await renderPage('dashboard');
+    } else {
+        sidebar.classList.add('hidden');
+        await renderPage('customer-portal');
+    }
     lucide.createIcons();
 }
 
-function migrateData() {
-    const customers = Data.getCustomers();
-    let updated = false;
-    customers.forEach(c => {
-        if (c.region === 'ÇARŞI') { c.region = 'CARSI'; updated = true; }
-        if (c.region === 'MERAM SANAYİ') { c.region = 'MERAM'; updated = true; }
+function setupLoginEventListeners() {
+    const loginForm = document.getElementById('login-form');
+    if (!loginForm) return;
+
+    const tabs = document.querySelectorAll('.login-tab');
+    const roleInput = document.getElementById('login-role');
+    const usernameLabel = document.getElementById('username-label');
+    const usernameInput = document.getElementById('login-username');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const role = tab.dataset.role;
+            roleInput.value = role;
+
+            if (role === 'admin') {
+                usernameLabel.textContent = 'Yönetici Adı';
+                usernameInput.placeholder = 'admin';
+            } else {
+                usernameLabel.textContent = 'Telefon Numaranız';
+                usernameInput.placeholder = '5XX XXX XX XX';
+            }
+        });
     });
-    if (updated) Storage.set('customers', customers);
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        const errorMsg = document.getElementById('login-error');
+        
+        const success = await Data.login(username, password);
+        if (success) {
+            errorMsg.classList.add('hidden');
+            await showApp();
+        } else {
+            errorMsg.classList.remove('hidden');
+        }
+    });
 }
 
 function updateDate() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('current-date').textContent = new Date().toLocaleDateString('tr-TR', options);
+    const dateEl = document.getElementById('current-date');
+    if (dateEl) dateEl.textContent = new Date().toLocaleDateString('tr-TR', options);
 }
 
 function setupNavigation() {
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', async (e) => {
             const page = e.currentTarget.dataset.page;
-            
             navItems.forEach(i => i.classList.remove('active'));
             e.currentTarget.classList.add('active');
-            
             state.currentPage = page;
-            renderPage(page);
+            await renderPage(page);
         });
     });
 }
 
 function setupEventListeners() {
-    document.getElementById('close-modal').addEventListener('click', closeModal);
-    document.getElementById('btn-export-daily').addEventListener('click', exportDailyOrders);
+    const closeBtn = document.getElementById('close-modal');
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
     
-    // Delegation for dynamic elements
-    document.addEventListener('click', (e) => {
+    const exportBtn = document.getElementById('btn-export-daily');
+    if (exportBtn) exportBtn.addEventListener('click', exportDailyOrders);
+    
+    document.addEventListener('click', async (e) => {
         const target = e.target.closest('button');
         if (!target) return;
 
         if (target.id === 'btn-apply-bulk') handleBulkApply();
         if (target.id === 'btn-delete-bulk') handleBulkDelete();
         if (target.id === 'btn-cancel-bulk') handleBulkCancel();
-        if (target.classList.contains('btn-save-row')) saveCustomerOrder(target.dataset.id);
-        if (target.classList.contains('btn-edit-customer')) showCustomerModal(target.dataset.id);
+        if (target.classList.contains('btn-save-row')) await saveCustomerOrder(target.dataset.id);
+        if (target.classList.contains('btn-edit-customer')) await showCustomerModal(target.dataset.id);
         if (target.classList.contains('btn-delete-customer')) {
             if(confirm('Müşteriyi silmek istediğinize emin misiniz?')) {
-                Data.deleteCustomer(parseInt(target.dataset.id));
-                renderPage('customers');
+                await Data.deleteCustomer(parseInt(target.dataset.id));
+                await renderPage('customers');
             }
         }
         if (target.classList.contains('btn-filter')) handleRegionFilter(target);
+        if (target.id === 'btn-logout') {
+            Data.logout();
+            location.reload();
+        }
     });
 
     document.addEventListener('change', (e) => {
@@ -85,39 +149,43 @@ function setupEventListeners() {
     });
 }
 
-function renderPage(page) {
+async function renderPage(page) {
     const content = document.getElementById('content-area');
     const title = document.getElementById('page-title');
+    if (!content || !title) return;
     
     switch(page) {
         case 'dashboard':
             title.textContent = 'Anasayfa';
-            renderDashboard(content);
+            await renderDashboard(content);
             break;
         case 'daily-entry':
             title.textContent = 'Günlük Lavaş Girişi';
-            renderDailyEntry(content);
+            await renderDailyEntry(content);
+            break;
+        case 'customer-portal':
+            title.textContent = 'Müşteri Paneli';
+            await renderCustomerPortal(content);
             break;
         case 'customers':
             title.textContent = 'Müşteri Yönetimi';
-            renderCustomers(content);
+            await renderCustomers(content);
             break;
         case 'products':
             title.textContent = 'Ürün Yönetimi';
-            renderProducts(content);
+            await renderProducts(content);
             break;
         case 'reports':
             title.textContent = 'Cari Raporlar';
-            renderReports(content);
+            await renderReports(content);
             break;
     }
-    
     lucide.createIcons();
 }
 
 // --- Dashboard ---
-function renderDashboard(container) {
-    const orders = Data.getOrders();
+async function renderDashboard(container) {
+    const orders = await Data.getOrders();
     const todayStr = new Date().toISOString().split('T')[0];
     const todayOrders = orders.filter(o => o.date === todayStr);
     
@@ -126,9 +194,11 @@ function renderDashboard(container) {
         o.items.forEach(item => totalLavas += item.quantity);
     });
 
-    const customers = Data.getCustomers();
-    const transactions = Data.getTransactions();
-    const totalBalance = customers.reduce((acc, c) => acc + Data.getCustomerBalance(c.id), 0);
+    const customers = await Data.getCustomers();
+    let totalBalance = 0;
+    for (const c of customers) {
+        totalBalance += await Data.getCustomerBalance(c.id);
+    }
 
     container.innerHTML = `
         <div class="dashboard-grid">
@@ -145,14 +215,19 @@ function renderDashboard(container) {
                 <span class="stat-value">${totalBalance.toLocaleString('tr-TR')} ₺</span>
             </div>
         </div>
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+            <button class="btn btn-secondary" id="btn-logout">
+                <i data-lucide="log-out"></i> Güvenli Çıkış
+            </button>
+        </div>
     `;
 }
 
 // --- Daily Entry ---
-function renderDailyEntry(container) {
-    const customers = Data.getCustomers();
-    const products = Data.getProducts();
-    const orders = Data.getOrders();
+async function renderDailyEntry(container) {
+    const customers = await Data.getCustomers();
+    const products = await Data.getProducts();
+    const orders = await Data.getOrders();
     const todayStr = new Date().toISOString().split('T')[0];
 
     if (customers.length === 0) {
@@ -163,7 +238,7 @@ function renderDailyEntry(container) {
     container.innerHTML = `
         <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
             <span style="font-weight: 600; font-size: 0.9rem;">Filtrele:</span>
-            <button class="btn btn-filter active" data-region="ALL">Tümü</button>
+            <button class="btn btn-filter active btn-primary" data-region="ALL">Tümü</button>
             <button class="btn btn-filter" data-region="BOSNA">BOSNA</button>
             <button class="btn btn-filter" data-region="CARSI">ÇARŞI</button>
             <button class="btn btn-filter" data-region="MERAM">MERAM SANAYİ</button>
@@ -181,7 +256,7 @@ function renderDailyEntry(container) {
                 </thead>
                 <tbody>
                     ${customers.map((c, idx) => {
-                        const order = orders.find(o => o.customerId === c.id && o.date === todayStr);
+                        const order = orders.find(o => o.customer_id === c.id && o.date === todayStr);
                         return `
                             <tr data-customer-id="${c.id}">
                                 <td style="color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
@@ -208,68 +283,99 @@ function renderDailyEntry(container) {
         </div>
     `;
 
-    document.querySelectorAll('.btn-save-row').forEach(btn => {
-        btn.addEventListener('click', (e) => saveCustomerOrder(e.currentTarget.dataset.id));
-    });
-    
-    document.getElementById('btn-save-all').addEventListener('click', () => {
-        customers.forEach(c => saveCustomerOrder(c.id));
+    document.getElementById('btn-save-all').addEventListener('click', async () => {
+        for (const c of customers) {
+            await saveCustomerOrder(c.id);
+        }
         alert('Tüm girişler kaydedildi.');
-    });
-
-    // Filter Logic
-    const filterBtns = document.querySelectorAll('.btn-filter');
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const region = e.currentTarget.dataset.region;
-            filterBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
-            e.currentTarget.classList.add('active', 'btn-primary');
-            
-            const rows = document.querySelectorAll('#daily-matrix-table tbody tr');
-            rows.forEach(row => {
-                const customerId = row.dataset.customerId;
-                const customer = customers.find(c => c.id == customerId);
-                if (region === 'ALL' || customer.region === region) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
     });
 }
 
-function saveCustomerOrder(customerId) {
+// --- Customer Portal ---
+async function renderCustomerPortal(container) {
+    const user = Data.currentUser;
+    const balance = await Data.getCustomerBalance(user.id);
+    const products = await Data.getProducts();
+    const orders = await Data.getOrders();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayOrder = orders.find(o => o.customer_id === user.id && o.date === todayStr);
+
+    container.innerHTML = `
+        <div class="customer-balance-card">
+            <div class="balance-info">
+                <h3>Güncel Cari Bakiyeniz</h3>
+                <div class="balance-amount">${balance.toLocaleString('tr-TR')} ₺</div>
+            </div>
+            <button class="btn btn-secondary" id="btn-logout" style="background: rgba(255,255,255,0.2); border: none; color: white;">
+                <i data-lucide="log-out"></i> Çıkış
+            </button>
+        </div>
+
+        <div class="stat-card" style="margin-bottom: 2rem;">
+            <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem;">Bugünkü Siparişiniz</h2>
+            <form id="customer-order-form">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
+                    ${products.map(p => {
+                        const item = todayOrder ? todayOrder.items.find(i => i.productId === p.id) : null;
+                        const qty = item ? item.quantity : 0;
+                        const specPrice = user.special_prices && user.special_prices[p.id] ? user.special_prices[p.id] : p.default_price;
+                        return `
+                            <div class="form-group">
+                                <label>${p.name} (${specPrice} ₺)</label>
+                                <input type="number" class="form-control portal-q-input" data-product-id="${p.id}" value="${qty}" min="0">
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 2rem; width: 100%; padding: 1rem;">Siparişi Kaydet / Güncelle</button>
+            </form>
+        </div>
+    `;
+
+    document.getElementById('customer-order-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const inputs = document.querySelectorAll('.portal-q-input');
+        const items = [];
+        inputs.forEach(input => {
+            const productId = parseInt(input.dataset.productId);
+            const quantity = parseInt(input.value) || 0;
+            const product = products.find(p => p.id === productId);
+            const price = user.special_prices && user.special_prices[productId] ? user.special_prices[productId] : product.default_price;
+            if (quantity > 0) items.push({ productId, quantity, price });
+        });
+
+        await Data.saveOrder({ customer_id: user.id, items });
+        alert('Siparişiniz başarıyla kaydedildi.');
+        await renderCustomerPortal(container);
+    });
+}
+
+async function saveCustomerOrder(customerId) {
     const row = document.querySelector(`tr[data-customer-id="${customerId}"]`);
+    if (!row) return;
     const inputs = row.querySelectorAll('.q-input');
-    const customer = Data.getCustomers().find(c => c.id == customerId);
-    const products = Data.getProducts();
+    const customers = await Data.getCustomers();
+    const customer = customers.find(c => c.id == customerId);
+    const products = await Data.getProducts();
     
     const items = [];
     inputs.forEach(input => {
         const productId = parseInt(input.dataset.productId);
         const quantity = parseInt(input.value) || 0;
         const product = products.find(p => p.id === productId);
-        
-        // Use special price if defined, else default
-        const price = (customer.prices && customer.prices[productId]) ? customer.prices[productId] : product.defaultPrice;
-        
-        if (quantity > 0) {
-            items.push({ productId, quantity, price });
-        }
+        const price = (customer.special_prices && customer.special_prices[productId]) ? customer.special_prices[productId] : product.default_price;
+        if (quantity > 0) items.push({ productId, quantity, price });
     });
 
-    Data.saveOrder({ customerId: parseInt(customerId), items });
-    
-    // Animation/Feedback
+    await Data.saveOrder({ customer_id: parseInt(customerId), items });
     row.style.background = '#f0fdf4';
     setTimeout(() => row.style.background = 'transparent', 1000);
 }
 
 // --- Customer Management ---
-function renderCustomers(container) {
-    const customers = Data.getCustomers();
-    const products = Data.getProducts();
+async function renderCustomers(container) {
+    const customers = await Data.getCustomers();
+    const products = await Data.getProducts();
 
     container.innerHTML = `
         <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
@@ -315,34 +421,35 @@ function renderCustomers(container) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${customers.map((c, idx) => `
-                        <tr data-id="${c.id}">
-                            <td><input type="checkbox" class="customer-checkbox" data-id="${c.id}"></td>
-                            <td style="color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
-                            <td style="font-weight: 600;">${c.name}</td>
-                            <td><span class="badge ${c.region === 'BOSNA' ? 'badge-bosna' : (c.region === 'CARSI' ? 'badge-carsi' : 'badge-meram')}">${c.region === 'CARSI' ? 'ÇARŞI' : (c.region === 'MERAM' ? 'MERAM SANAYİ' : (c.region || 'Belirtilmemiş'))}</span></td>
-                            <td>${c.phone || '-'}</td>
-                            <td style="font-weight: 700; color: #ef4444">${Data.getCustomerBalance(c.id).toLocaleString('tr-TR')} ₺</td>
-                            <td>
-                                <button class="btn btn-edit-customer" data-id="${c.id}" style="color: #2563eb; background: #eff6ff;">
-                                    <i data-lucide="edit-2"></i> Düzenle
-                                </button>
-                                <button class="btn btn-delete-customer" data-id="${c.id}" style="color: #ef4444; background: #fef2f2;">
-                                    <i data-lucide="trash"></i> Sil
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('')}
-                    ${customers.length === 0 ? '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Henüz müşteri yok.</td></tr>' : ''}
+                    ${await Promise.all(customers.map(async (c, idx) => {
+                        const balance = await Data.getCustomerBalance(c.id);
+                        return `
+                            <tr data-id="${c.id}">
+                                <td><input type="checkbox" class="customer-checkbox" data-id="${c.id}"></td>
+                                <td style="color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
+                                <td style="font-weight: 600;">${c.name}</td>
+                                <td><span class="badge ${c.region === 'BOSNA' ? 'badge-bosna' : (c.region === 'CARSI' ? 'badge-carsi' : 'badge-meram')}">${c.region === 'CARSI' ? 'ÇARŞI' : (c.region === 'MERAM' ? 'MERAM SANAYİ' : (c.region || 'Belirtilmemiş'))}</span></td>
+                                <td>${c.phone || '-'}</td>
+                                <td style="font-weight: 700; color: #ef4444">${balance.toLocaleString('tr-TR')} ₺</td>
+                                <td>
+                                    <button class="btn btn-edit-customer" data-id="${c.id}" style="color: #2563eb; background: #eff6ff;">
+                                        <i data-lucide="edit-2"></i> Düzenle
+                                    </button>
+                                    <button class="btn btn-delete-customer" data-id="${c.id}" style="color: #ef4444; background: #fef2f2;">
+                                        <i data-lucide="trash"></i> Sil
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    })).then(rows => rows.join(''))}
+                    ${customers.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Henüz müşteri yok.</td></tr>' : ''}
                 </tbody>
             </table>
         </div>
     `;
 
-    // Initial bar update
     updateBulkBar();
 
-    // Event Listeners for Customer Actions
     document.getElementById('btn-import-excel').addEventListener('click', () => {
         document.getElementById('excel-import-input').click();
     });
@@ -380,7 +487,7 @@ function handleBulkCancel() {
     updateBulkBar();
 }
 
-function handleBulkApply() {
+async function handleBulkApply() {
     const checkboxes = document.querySelectorAll('.customer-checkbox');
     const selectedIds = Array.from(checkboxes)
         .filter(cb => cb.checked)
@@ -395,23 +502,23 @@ function handleBulkApply() {
 
     if (confirm(`${selectedIds.length} müşterinin bölgesini ${newRegion} olarak değiştirmek istediğinize emin misiniz?`)) {
         try {
-            const allCustomers = Data.getCustomers();
-            selectedIds.forEach(id => {
+            const allCustomers = await Data.getCustomers();
+            for (const id of selectedIds) {
                 const customer = allCustomers.find(c => (c.id || '').toString() === id.toString());
                 if (customer) {
                     customer.region = newRegion;
-                    Data.saveCustomer(customer);
+                    await Data.saveCustomer(customer);
                 }
-            });
+            }
             alert('Toplu düzenleme tamamlandı.');
-            renderPage('customers');
+            await renderPage('customers');
         } catch (err) {
             alert('Bir hata oluştu: ' + err.message);
         }
     }
 }
 
-function handleBulkDelete() {
+async function handleBulkDelete() {
     const checkboxes = document.querySelectorAll('.customer-checkbox');
     const selectedIds = Array.from(checkboxes)
         .filter(cb => cb.checked)
@@ -424,25 +531,25 @@ function handleBulkDelete() {
 
     if (confirm(`${selectedIds.length} müşteriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
         try {
-            selectedIds.forEach(id => {
-                Data.deleteCustomer(parseInt(id));
-            });
+            for (const id of selectedIds) {
+                await Data.deleteCustomer(parseInt(id));
+            }
             alert('Seçili müşteriler silindi.');
-            renderPage('customers');
+            await renderPage('customers');
         } catch (err) {
             alert('Bir hata oluştu: ' + err.message);
         }
     }
 }
 
-function handleRegionFilter(btn) {
+async function handleRegionFilter(btn) {
     const region = btn.dataset.region;
     const filterBtns = document.querySelectorAll('.btn-filter');
     filterBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
     btn.classList.add('active', 'btn-primary');
     
     const rows = document.querySelectorAll('#daily-matrix-table tbody tr');
-    const customers = Data.getCustomers();
+    const customers = await Data.getCustomers();
     rows.forEach(row => {
         const customerId = row.dataset.customerId;
         const customer = customers.find(c => c.id == customerId);
@@ -454,9 +561,10 @@ function handleRegionFilter(btn) {
     });
 }
 
-function showCustomerModal(id = null) {
-    const customer = id ? Data.getCustomers().find(c => c.id == id) : null;
-    const products = Data.getProducts();
+async function showCustomerModal(id = null) {
+    const customers = await Data.getCustomers();
+    const customer = id ? customers.find(c => c.id == id) : null;
+    const products = await Data.getProducts();
     
     const title = id ? 'Müşteri Düzenle' : 'Yeni Müşteri Ekle';
     const body = `
@@ -466,8 +574,12 @@ function showCustomerModal(id = null) {
                 <input type="text" id="cust-name" class="form-control" value="${customer ? customer.name : ''}" required>
             </div>
             <div class="form-group" style="margin-bottom: 0.75rem;">
-                <label style="margin-bottom: 0.25rem;">Telefon</label>
-                <input type="text" id="cust-phone" class="form-control" value="${customer ? customer.phone || '' : ''}">
+                <label style="margin-bottom: 0.25rem;">Telefon / Kullanıcı Adı</label>
+                <input type="text" id="cust-phone" class="form-control" value="${customer ? customer.phone || '' : ''}" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label style="margin-bottom: 0.25rem;">Giriş Şifresi</label>
+                <input type="text" id="cust-password" class="form-control" value="${customer ? customer.password || '1234' : '1234'}" required>
             </div>
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label style="margin-bottom: 0.25rem;">Bölge</label>
@@ -492,7 +604,7 @@ function showCustomerModal(id = null) {
                 ${products.map(p => `
                     <div class="form-group" style="margin-bottom: 0;">
                         <label style="font-size: 0.75rem; margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${p.name}">${p.name}</label>
-                        <input type="number" step="0.01" class="form-control price-input" style="padding: 0.4rem; font-size: 0.85rem;" data-product-id="${p.id}" value="${customer && customer.prices && customer.prices[p.id] ? customer.prices[p.id] : ''}" placeholder="${p.defaultPrice}">
+                        <input type="number" step="0.01" class="form-control price-input" style="padding: 0.4rem; font-size: 0.85rem;" data-product-id="${p.id}" value="${customer && customer.special_prices && customer.special_prices[p.id] ? customer.special_prices[p.id] : ''}" placeholder="${p.default_price}">
                     </div>
                 `).join('')}
             </div>
@@ -506,7 +618,7 @@ function showCustomerModal(id = null) {
 
     openModal(title, body);
     
-    document.getElementById('customer-form').onsubmit = (e) => {
+    document.getElementById('customer-form').onsubmit = async (e) => {
         e.preventDefault();
         const prices = {};
         document.querySelectorAll('.price-input').forEach(input => {
@@ -517,20 +629,20 @@ function showCustomerModal(id = null) {
             id: id ? parseInt(id) : null,
             name: document.getElementById('cust-name').value,
             phone: document.getElementById('cust-phone').value,
+            password: document.getElementById('cust-password').value,
             region: document.querySelector('input[name="region"]:checked').value,
-            prices: prices
+            special_prices: prices
         };
         
-        console.log('Saving Customer Data:', data);
-        Data.saveCustomer(data);
+        await Data.saveCustomer(data);
         closeModal();
-        renderPage('customers');
+        await renderPage('customers');
     };
 }
 
 // --- Product Management ---
-function renderProducts(container) {
-    const products = Data.getProducts();
+async function renderProducts(container) {
+    const products = await Data.getProducts();
     
     container.innerHTML = `
         <div style="margin-bottom: 1.5rem;">
@@ -551,7 +663,7 @@ function renderProducts(container) {
                     ${products.map(p => `
                         <tr>
                             <td style="font-weight: 600;">${p.name}</td>
-                            <td style="font-weight: 700;">${p.defaultPrice.toLocaleString('tr-TR')} ₺</td>
+                            <td style="font-weight: 700;">${p.default_price.toLocaleString('tr-TR')} ₺</td>
                             <td>
                                 <button class="btn btn-edit-product" data-id="${p.id}" style="padding: 0.3rem 0.6rem; color: #2563eb; background: #eff6ff;"> Düzenle </button>
                             </td>
@@ -567,8 +679,9 @@ function renderProducts(container) {
     lucide.createIcons();
 }
 
-function showProductModal(id = null) {
-    const product = id ? Data.getProducts().find(p => p.id == id) : null;
+async function showProductModal(id = null) {
+    const products = await Data.getProducts();
+    const product = id ? products.find(p => p.id == id) : null;
     const title = id ? 'Ürünü Düzenle' : 'Yeni Ürün Ekle';
     const body = `
         <form id="product-form">
@@ -578,7 +691,7 @@ function showProductModal(id = null) {
             </div>
             <div class="form-group">
                 <label>Varsayılan Birim Fiyat (₺)</label>
-                <input type="number" step="0.01" id="prod-price" class="form-control" value="${product ? product.defaultPrice : ''}" required>
+                <input type="number" step="0.01" id="prod-price" class="form-control" value="${product ? product.default_price : ''}" required>
             </div>
             <div style="margin-top: 2rem; display: flex; gap: 1rem;">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">Kaydet</button>
@@ -589,43 +702,49 @@ function showProductModal(id = null) {
     
     openModal(title, body);
     
-    document.getElementById('product-form').onsubmit = (e) => {
+    document.getElementById('product-form').onsubmit = async (e) => {
         e.preventDefault();
-        Data.saveProduct({
+        await Data.saveProduct({
             id: id ? parseInt(id) : null,
             name: document.getElementById('prod-name').value,
-            defaultPrice: parseFloat(document.getElementById('prod-price').value)
+            default_price: parseFloat(document.getElementById('prod-price').value)
         });
         closeModal();
-        renderPage('products');
+        await renderPage('products');
     };
 }
 
 // --- Reports & Cari ---
-function renderReports(container) {
-    const customers = Data.getCustomers();
+async function renderReports(container) {
+    const customers = await Data.getCustomers();
     
     container.innerHTML = `
         <div class="dashboard-grid">
-            ${customers.map(c => `
-                <div class="stat-card" style="cursor: pointer;" onclick="showCariDetail(${c.id})">
-                    <span class="stat-title">${c.name}</span>
-                    <span class="stat-value" style="color: #ef4444">${Data.getCustomerBalance(c.id).toLocaleString('tr-TR')} ₺</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted)">Detaylı döküm için tıkla</span>
-                </div>
-            `).join('')}
+            ${await Promise.all(customers.map(async (c) => {
+                const balance = await Data.getCustomerBalance(c.id);
+                return `
+                    <div class="stat-card" style="cursor: pointer;" onclick="showCariDetail(${c.id})">
+                        <span class="stat-title">${c.name}</span>
+                        <span class="stat-value" style="color: #ef4444">${balance.toLocaleString('tr-TR')} ₺</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted)">Detaylı döküm için tıkla</span>
+                    </div>
+                `;
+            })).then(cards => cards.join(''))}
         </div>
     `;
 }
 
-function showCariDetail(customerId) {
-    const customer = Data.getCustomers().find(c => c.id == customerId);
-    const txs = Data.getTransactions().filter(t => t.customerId == customerId);
+async function showCariDetail(customerId) {
+    const customers = await Data.getCustomers();
+    const customer = customers.find(c => c.id == customerId);
+    const transactions = await Data.getTransactions();
+    const txs = transactions.filter(t => t.customer_id == customerId);
+    const balance = await Data.getCustomerBalance(customerId);
     
     const title = `${customer.name} - Cari Detayı`;
     const body = `
         <div style="margin-bottom: 1rem; display: flex; justify-content: space-between;">
-            <div><strong>Toplam Bakiye:</strong> <span style="color: #ef4444; font-weight: 700;">${Data.getCustomerBalance(customerId).toLocaleString('tr-TR')} ₺</span></div>
+            <div><strong>Toplam Bakiye:</strong> <span style="color: #ef4444; font-weight: 700;">${balance.toLocaleString('tr-TR')} ₺</span></div>
             <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; background: #10b981;" onclick="addPaymentModal(${customerId})">Ödeme Al</button>
         </div>
         <div style="max-height: 400px; overflow-y: auto;">
@@ -673,43 +792,80 @@ window.addPaymentModal = function(customerId) {
     
     openModal(title, body);
     
-    document.getElementById('payment-form').onsubmit = (e) => {
+    document.getElementById('payment-form').onsubmit = async (e) => {
         e.preventDefault();
-        const txs = Storage.get('transactions');
-        txs.push({
-            id: Date.now(),
-            date: new Date().toISOString().split('T')[0],
-            customerId: customerId,
-            type: 'CREDIT',
-            amount: parseFloat(document.getElementById('pay-amount').value),
-            description: document.getElementById('pay-desc').value,
-            ref: 'PAYMENT'
-        });
-        Storage.set('transactions', txs);
+        await Data.addPayment(customerId, parseFloat(document.getElementById('pay-amount').value), document.getElementById('pay-desc').value);
         closeModal();
-        renderPage('reports');
+        await renderPage('reports');
     };
 };
 
 // --- Utils ---
+function openModal(title, content) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML = content;
+    document.getElementById('modal-container').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal-container').classList.add('hidden');
+}
+
+async function exportDailyOrders() {
+    const [orders, products, customers] = await Promise.all([
+        Data.getOrders(),
+        Data.getProducts(),
+        Data.getCustomers()
+    ]);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayOrders = orders.filter(o => o.date === todayStr);
+    
+    const exportData = todayOrders.map(o => {
+        const customer = customers.find(c => c.id === o.customer_id);
+        const row = { 
+            "Müşteri": customer ? customer.name : 'Bilinmeyen',
+            "Bölge": customer ? (customer.region === 'CARSI' ? 'ÇARŞI' : (customer.region === 'MERAM' ? 'MERAM' : customer.region)) : '-'
+        };
+        products.forEach(p => {
+            const item = o.items.find(i => i.productId === p.id);
+            row[p.name] = item ? item.quantity : 0;
+        });
+        return row;
+    });
+
+    if (exportData.length === 0) {
+        alert('Bugün için henüz sipariş girilmemiş.');
+        return;
+    }
+
+    exportData.sort((a, b) => (a.Bölge || '').localeCompare(b.Bölge || ''));
+
+    const totalRow = { "Müşteri": "GENEL TOPLAM", "Bölge": "" };
+    products.forEach(p => {
+        totalRow[p.name] = exportData.reduce((sum, row) => sum + (row[p.name] || 0), 0);
+    });
+    exportData.push(totalRow);
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Günlük Üretim");
+    XLSX.writeFile(wb, `Lavas_Uretim_${todayStr}.xlsx`);
+}
+
 async function handleCustomerImport(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        // Raw data as array of arrays
         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        console.log('Raw Excel Rows:', rows);
-
         let importCount = 0;
         
-        // Header detection
         let startIdx = 0;
         const firstRow = rows[0] || [];
         const headerKeywords = ['ad', 'müşteri', 'customer', 'name', 'tel', 'telefon', 'bölge', 'bolge', 'region'];
@@ -744,79 +900,21 @@ async function handleCustomerImport(event) {
                 else if (normalizedRegion.includes('MERAM')) normalizedRegion = 'MERAM';
                 else normalizedRegion = 'BOSNA';
 
-                Data.saveCustomer({
+                await Data.saveCustomer({
                     id: null,
                     name: name.toString().trim(),
                     phone: phone.toString().trim(),
+                    password: '1234',
                     region: normalizedRegion,
-                    prices: {}
+                    special_prices: {}
                 });
                 importCount++;
             }
         }
 
         alert(`${importCount} müşteri başarıyla aktarıldı.`);
-        renderPage('customers');
+        await renderPage('customers');
         event.target.value = '';
     };
     reader.readAsArrayBuffer(file);
-}
-
-function openModal(title, content) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-body').innerHTML = content;
-    document.getElementById('modal-container').classList.remove('hidden');
-}
-
-function closeModal() {
-    document.getElementById('modal-container').classList.add('hidden');
-}
-
-function exportDailyOrders() {
-    const orders = Data.getOrders();
-    const products = Data.getProducts();
-    const customers = Data.getCustomers();
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    const todayOrders = orders.filter(o => o.date === todayStr);
-    
-    const exportData = todayOrders.map(o => {
-        const customer = customers.find(c => c.id === o.customerId);
-        const row = { 
-            "Müşteri": customer ? customer.name : 'Bilinmeyen',
-            "Bölge": customer ? (customer.region === 'CARSI' ? 'ÇARŞI' : (customer.region === 'MERAM' ? 'MERAM' : customer.region)) : '-'
-        };
-        
-        products.forEach(p => {
-            const item = o.items.find(i => i.productId === p.id);
-            row[p.name] = item ? item.quantity : 0;
-        });
-        
-        return row;
-    });
-
-    if (exportData.length === 0) {
-        alert('Bugün için henüz sipariş girilmemiş.');
-        return;
-    }
-
-    // Sort by region
-    exportData.sort((a, b) => (a.Bölge || '').localeCompare(b.Bölge || ''));
-
-    // Append Total Row
-    const totalRow = {
-        "Müşteri": "GENEL TOPLAM",
-        "Bölge": ""
-    };
-
-    products.forEach(p => {
-        totalRow[p.name] = exportData.reduce((sum, row) => sum + (row[p.name] || 0), 0);
-    });
-
-    exportData.push(totalRow);
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Günlük Üretim");
-    XLSX.writeFile(wb, `Lavas_Uretim_${todayStr}.xlsx`);
 }
