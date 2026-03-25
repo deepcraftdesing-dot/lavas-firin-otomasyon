@@ -2,7 +2,16 @@
 const SUPABASE_URL = 'https://pktxasnposdltilqufcq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdHhhc25wb3NkbHRpbHF1ZmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzOTQ5NjYsImV4cCI6MjA4OTk3MDk2Nn0.53Zb6UJVo4sXLZB1Y1lmp5EeqOT8IGzYZco99l6gz3Y';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase;
+try {
+    if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error('Supabase SDK not loaded!');
+    }
+} catch (err) {
+    console.error('Error initializing Supabase:', err);
+}
 
 const Data = {
     // Current User State
@@ -187,3 +196,5 @@ const Data = {
         if (error) console.error('Error adding payment:', error);
     }
 };
+
+window.Data = Data;
