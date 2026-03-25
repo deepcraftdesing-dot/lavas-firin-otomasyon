@@ -118,10 +118,7 @@ const Data = {
 
 window.Data = Data;
 console.log('data.js: Loaded.');
-// Application Logic
-document.addEventListener('DOMContentLoaded', async () => {
-    await init();
-});
+
 
 const state = {
     currentPage: 'dashboard',
@@ -349,7 +346,7 @@ async function renderDashboard(container) {
             </div>
             <div class="stat-card">
                 <span class="stat-title">Toplam Alacak</span>
-                <span class="stat-value">${totalBalance.toLocaleString('tr-TR')} ₺</span>
+                <span class="stat-value">${totalBalance.toLocaleString('tr-TR')} TL</span>
             </div>
         </div>
         <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
@@ -441,7 +438,7 @@ async function renderCustomerPortal(container) {
         <div class="customer-balance-card">
             <div class="balance-info">
                 <h3>Guncel Cari Bakiyeniz</h3>
-                <div class="balance-amount">${balance.toLocaleString('tr-TR')} ₺</div>
+                <div class="balance-amount">${balance.toLocaleString('tr-TR')} TL</div>
             </div>
             <button class="btn btn-secondary" id="btn-logout" style="background: rgba(255,255,255,0.2); border: none; color: white;">
                 <i data-lucide="log-out"></i> Cikis
@@ -458,7 +455,7 @@ async function renderCustomerPortal(container) {
                         const specPrice = user.special_prices && user.special_prices[p.id] ? user.special_prices[p.id] : p.default_price;
                         return `
                             <div class="form-group">
-                                <label>${p.name} (${specPrice} ₺)</label>
+                                <label>${p.name} (${specPrice} TL)</label>
                                 <input type="number" class="form-control portal-q-input" data-product-id="${p.id}" value="${qty}" min="0">
                             </div>
                         `;
@@ -567,7 +564,7 @@ async function renderCustomers(container) {
                                 <td style="font-weight: 600;">${c.name}</td>
                                 <td><span class="badge ${c.region === 'BOSNA' ? 'badge-bosna' : (c.region === 'CARSI' ? 'badge-carsi' : 'badge-meram')}">${c.region === 'CARSI' ? 'CARSI' : (c.region === 'MERAM' ? 'MERAM SANAYI' : (c.region || 'Belirtilmemis'))}</span></td>
                                 <td>${c.phone || '-'}</td>
-                                <td style="font-weight: 700; color: #ef4444">${balance.toLocaleString('tr-TR')} ₺</td>
+                                <td style="font-weight: 700; color: #ef4444">${balance.toLocaleString('tr-TR')} TL</td>
                                 <td>
                                     <button class="btn btn-edit-customer" data-id="${c.id}" style="color: #2563eb; background: #eff6ff;">
                                         <i data-lucide="edit-2"></i> Duzenle
@@ -736,7 +733,7 @@ async function showCustomerModal(id = null) {
                 </div>
             </div>
             
-            <h4 style="margin: 0.5rem 0 0.75rem; border-bottom: 2px solid var(--primary); display: inline-block; font-size: 0.9rem;">Ozel Fiyatlar (₺)</h4>
+            <h4 style="margin: 0.5rem 0 0.75rem; border-bottom: 2px solid var(--primary); display: inline-block; font-size: 0.9rem;">Ozel Fiyatlar (TL)</h4>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
                 ${products.map(p => `
                     <div class="form-group" style="margin-bottom: 0;">
@@ -800,7 +797,7 @@ async function renderProducts(container) {
                     ${products.map(p => `
                         <tr>
                             <td style="font-weight: 600;">${p.name}</td>
-                            <td style="font-weight: 700;">${p.default_price.toLocaleString('tr-TR')} ₺</td>
+                            <td style="font-weight: 700;">${p.default_price.toLocaleString('tr-TR')} TL</td>
                             <td>
                                 <button class="btn btn-edit-product" data-id="${p.id}" style="padding: 0.3rem 0.6rem; color: #2563eb; background: #eff6ff;"> Duzenle </button>
                             </td>
@@ -827,7 +824,7 @@ async function showProductModal(id = null) {
                 <input type="text" id="prod-name" class="form-control" value="${product ? product.name : ''}" required>
             </div>
             <div class="form-group">
-                <label>Varsayilan Birim Fiyat (₺)</label>
+                <label>Varsayilan Birim Fiyat (TL)</label>
                 <input type="number" step="0.01" id="prod-price" class="form-control" value="${product ? product.default_price : ''}" required>
             </div>
             <div style="margin-top: 2rem; display: flex; gap: 1rem;">
@@ -862,7 +859,7 @@ async function renderReports(container) {
                 return `
                     <div class="stat-card" style="cursor: pointer;" onclick="showCariDetail(${c.id})">
                         <span class="stat-title">${c.name}</span>
-                        <span class="stat-value" style="color: #ef4444">${balance.toLocaleString('tr-TR')} ₺</span>
+                        <span class="stat-value" style="color: #ef4444">${balance.toLocaleString('tr-TR')} TL</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted)">Detayli dokum icin tikla</span>
                     </div>
                 `;
@@ -881,7 +878,7 @@ async function showCariDetail(customerId) {
     const title = `${customer.name} - Cari Detayi`;
     const body = `
         <div style="margin-bottom: 1rem; display: flex; justify-content: space-between;">
-            <div><strong>Toplam Bakiye:</strong> <span style="color: #ef4444; font-weight: 700;">${balance.toLocaleString('tr-TR')} ₺</span></div>
+            <div><strong>Toplam Bakiye:</strong> <span style="color: #ef4444; font-weight: 700;">${balance.toLocaleString('tr-TR')} TL</span></div>
             <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; background: #10b981;" onclick="addPaymentModal(${customerId})">Odeme Al</button>
         </div>
         <div style="max-height: 400px; overflow-y: auto;">
@@ -899,8 +896,8 @@ async function showCariDetail(customerId) {
                         <tr>
                             <td>${t.date}</td>
                             <td>${t.description}</td>
-                            <td>${t.type === 'DEBIT' ? t.amount.toLocaleString('tr-TR') + ' ₺' : '-'}</td>
-                            <td style="color: #10b981">${t.type === 'CREDIT' ? t.amount.toLocaleString('tr-TR') + ' ₺' : '-'}</td>
+                            <td>${t.type === 'DEBIT' ? t.amount.toLocaleString('tr-TR') + ' TL' : '-'}</td>
+                            <td style="color: #10b981">${t.type === 'CREDIT' ? t.amount.toLocaleString('tr-TR') + ' TL' : '-'}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -916,7 +913,7 @@ window.addPaymentModal = function(customerId) {
     const body = `
         <form id="payment-form">
             <div class="form-group">
-                <label>Odeme Tutari (₺)</label>
+                <label>Odeme Tutari (TL)</label>
                 <input type="number" id="pay-amount" class="form-control" required>
             </div>
             <div class="form-group">
@@ -1054,4 +1051,11 @@ async function handleCustomerImport(event) {
         event.target.value = '';
     };
     reader.readAsArrayBuffer(file);
+}
+
+// Application Logic
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => init());
+} else {
+    init();
 }
