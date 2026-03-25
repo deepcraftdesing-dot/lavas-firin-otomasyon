@@ -114,28 +114,39 @@ const Data = {
 
     // Simple Authentication
     async login(username, password) {
-        // Admin hardcoded
-        if (username === 'admin' && password === '1234') {
-            this.isAdmin = true;
-            this.currentUser = { name: 'Admin', id: 'admin' };
-            localStorage.setItem('lavas_auth', JSON.stringify({ role: 'admin' }));
-            return true;
-        }
+        try {
+            // Admin hardcoded
+            if (username === 'admin' && password === '1234') {
+                this.isAdmin = true;
+                this.currentUser = { name: 'Admin', id: 'admin' };
+                localStorage.setItem('lavas_auth', JSON.stringify({ role: 'admin' }));
+                return true;
+            }
 
-        // Check customer
-        const { data, error } = await supabase.from('customers')
-            .select('*')
-            .eq('phone', username)
-            .eq('password', password)
-            .maybeSingle();
+            // Check customer
+            console.log('Querying Supabase for customer:', username);
+            const { data, error } = await supabase.from('customers')
+                .select('*')
+                .eq('phone', username)
+                .eq('password', password)
+                .maybeSingle();
 
-        if (data) {
-            this.isAdmin = false;
-            this.currentUser = data;
-            localStorage.setItem('lavas_auth', JSON.stringify({ role: 'customer', id: data.id }));
-            return true;
+            if (error) {
+                console.error('Supabase error during login:', error);
+                throw error;
+            }
+
+            if (data) {
+                this.isAdmin = false;
+                this.currentUser = data;
+                localStorage.setItem('lavas_auth', JSON.stringify({ role: 'customer', id: data.id }));
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error('Data.login exception:', err);
+            throw err;
         }
-        return false;
     },
 
     async checkAuth() {

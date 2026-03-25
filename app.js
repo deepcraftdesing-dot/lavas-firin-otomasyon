@@ -75,16 +75,33 @@ function setupLoginEventListeners() {
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
+        const usernameInput = document.getElementById('login-username');
+        const passwordInput = document.getElementById('login-password');
+        const loginBtn = loginForm.querySelector('button[type="submit"]');
         const errorMsg = document.getElementById('login-error');
         
-        const success = await Data.login(username, password);
-        if (success) {
-            errorMsg.classList.add('hidden');
-            await showApp();
-        } else {
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = 'Giriş Yapılıyor...';
+        loginBtn.disabled = true;
+        errorMsg.classList.add('hidden');
+
+        try {
+            console.log('Attempting login for:', usernameInput.value);
+            const success = await Data.login(usernameInput.value, passwordInput.value);
+            if (success) {
+                console.log('Login success');
+                await showApp();
+            } else {
+                console.warn('Login failed: Invalid credentials');
+                errorMsg.classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            errorMsg.textContent = 'Bir hata oluştu: ' + (err.message || 'Bilinmeyen hata');
             errorMsg.classList.remove('hidden');
+        } finally {
+            loginBtn.textContent = originalText;
+            loginBtn.disabled = false;
         }
     });
 }
