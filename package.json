@@ -1,0 +1,13 @@
+{
+  "name": "lavas-firin-otomasyon",
+  "version": "1.0.0",
+  "description": "Lavaş Fırın Yönetim Sistemi",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
