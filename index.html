@@ -227,7 +227,13 @@ const Data = {
             customer_id: cId, date: new Date().toISOString().split('T')[0],
             type: 'CREDIT', amount: amt, description: desc || 'Tahsilat', ref: 'PAYMENT'
         }]);
-    }
+    },
+    async saveProduct(p) {
+        const { id, ...data } = p;
+        if(id) return await supabaseClient.from('products').update(data).eq('id', id);
+        return await supabaseClient.from('products').insert([data]);
+    },
+    async deleteProduct(id) { await supabaseClient.from('products').delete().eq('id', id); }
 };
 
 window.Data = Data;
@@ -921,6 +927,7 @@ async function renderProducts(container) {
                             <td style="font-weight: 700;">${p.default_price.toLocaleString('tr-TR')} TL</td>
                             <td>
                                 <button class="btn btn-edit-product" data-id="${p.id}" style="padding: 0.3rem 0.6rem; color: #2563eb; background: #eff6ff;"> Duzenle </button>
+                                <button class="btn btn-delete-product" data-id="${p.id}" style="padding: 0.3rem 0.6rem; color: #dc2626; background: #fef2f2;"> Sil </button>
                             </td>
                         </tr>
                     `).join('')}
@@ -931,6 +938,12 @@ async function renderProducts(container) {
 
     document.getElementById('btn-add-product').addEventListener('click', () => showProductModal());
     document.querySelectorAll('.btn-edit-product').forEach(btn => btn.addEventListener('click', (e) => showProductModal(e.currentTarget.dataset.id)));
+    document.querySelectorAll('.btn-delete-product').forEach(btn => btn.addEventListener('click', async (e) => {
+        if(confirm('Urunu silmek istediginize emin misiniz?')) {
+            await Data.deleteProduct(e.currentTarget.dataset.id);
+            await renderPage('products');
+        }
+    }));
     lucide.createIcons();
 }
 
