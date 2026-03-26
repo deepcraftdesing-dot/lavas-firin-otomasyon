@@ -265,7 +265,7 @@ async function init() {
         console.log('init: completed successfully.');
     } catch (e) {
         console.error('init: CRITICAL ERROR:', e);
-        alert('UYARI: Sistem baslatilamadi! Hata: ' + e.message);
+        alert('UYARI: Sistem başlatılamadı! Hata: ' + e.message);
     }
 }
 
@@ -308,10 +308,10 @@ function setupLoginEventListeners() {
             roleInput.value = role;
 
             if (role === 'admin') {
-                usernameLabel.textContent = 'Yonetici Adi';
+                usernameLabel.textContent = 'Yönetici Adı';
                 usernameInput.placeholder = 'admin';
             } else {
-                usernameLabel.textContent = 'Telefon Numaraniz';
+                usernameLabel.textContent = 'Telefon Numaranız';
                 usernameInput.placeholder = '5XX XXX XX XX';
             }
         });
@@ -325,7 +325,7 @@ function setupLoginEventListeners() {
         const errorMsg = document.getElementById('login-error');
         
         const originalText = loginBtn.textContent;
-        loginBtn.textContent = 'Giris Yapiliyor...';
+        loginBtn.textContent = 'Giriş Yapılıyor...';
         loginBtn.disabled = true;
         errorMsg.classList.add('hidden');
 
@@ -341,7 +341,7 @@ function setupLoginEventListeners() {
             }
         } catch (err) {
             console.error('Login error:', err);
-            errorMsg.textContent = 'Bir hata olustu: ' + (err.message || 'Bilinmeyen hata');
+            errorMsg.textContent = 'Bir hata oluştu: ' + (err.message || 'Bilinmeyen hata');
             errorMsg.classList.remove('hidden');
         } finally {
             loginBtn.textContent = originalText;
@@ -386,7 +386,7 @@ function setupEventListeners() {
         if (target.classList.contains('btn-save-row')) await saveCustomerOrder(target.dataset.id);
         if (target.classList.contains('btn-edit-customer')) await showCustomerModal(target.dataset.id);
         if (target.classList.contains('btn-delete-customer')) {
-            if(confirm('Musteriyi silmek istediginize emin misiniz?')) {
+            if(confirm('Müşteriyi silmek istediğinize emin misiniz?')) {
                 await Data.deleteCustomer(parseInt(target.dataset.id));
                 await renderPage('customers');
             }
@@ -478,7 +478,7 @@ async function renderDashboard(container) {
         </div>
         <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
             <button class="btn btn-secondary" id="btn-logout">
-                <i data-lucide="log-out"></i> Guvenli Cikis
+                <i data-lucide="log-out"></i> Güvenli Çıkış
             </button>
         </div>
     `;
@@ -790,15 +790,15 @@ async function handleBulkDelete() {
         return;
     }
 
-    if (confirm(`${selectedIds.length} musteriyi silmek istediginize emin misiniz? Bu islem geri alinamaz!`)) {
+    if (confirm(`${selectedIds.length} müşteriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
         try {
             for (const id of selectedIds) {
                 await Data.deleteCustomer(parseInt(id));
             }
-            alert('Secili musteriler silindi.');
+            alert('Seçili müşteriler silindi.');
             await renderPage('customers');
         } catch (err) {
-            alert('Bir hata olustu: ' + err.message);
+            alert('Bir hata oluştu: ' + err.message);
         }
     }
 }
@@ -860,7 +860,7 @@ async function showCustomerModal(id = null) {
                 </div>
             </div>
             
-            <h4 style="margin: 0.5rem 0 0.75rem; border-bottom: 2px solid var(--primary); display: inline-block; font-size: 0.9rem;">Ozel Fiyatlar (TL)</h4>
+            <h4 style="margin: 0.5rem 0 0.75rem; border-bottom: 2px solid var(--primary); display: inline-block; font-size: 0.9rem;">Özel Fiyatlar (₺)</h4>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
                 ${products.map(p => `
                     <div class="form-group" style="margin-bottom: 0;">
@@ -924,7 +924,7 @@ async function renderProducts(container) {
                     ${products.map(p => `
                         <tr>
                             <td style="font-weight: 600;">${p.name}</td>
-                            <td style="font-weight: 700;">${p.default_price.toLocaleString('tr-TR')} TL</td>
+                            <td style="font-weight: 700;">${p.default_price.toLocaleString('tr-TR')} ₺</td>
                             <td>
                                 <button class="btn btn-edit-product" data-id="${p.id}" style="padding: 0.3rem 0.6rem; color: #2563eb; background: #eff6ff;"> Düzenle </button>
                                 <button class="btn btn-delete-product" data-id="${p.id}" style="padding: 0.3rem 0.6rem; color: #dc2626; background: #fef2f2;"> Sil </button>
@@ -1102,7 +1102,7 @@ async function exportDailyOrders() {
     });
 
     if (exportData.length === 0) {
-        alert('Bugun icin henuz siparis girilmemis.');
+        alert('Bugün için henüz sipariş girilmemiş.');
         return;
     }
 
@@ -1180,7 +1180,7 @@ async function handleCustomerImport(event) {
             }
         }
 
-        alert(`${importCount} musteri basariyla aktarildi.`);
+        alert(`${importCount} müşteri başarıyla aktarıldı.`);
         await renderPage('customers');
         event.target.value = '';
     };
