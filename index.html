@@ -606,7 +606,7 @@ async function renderCustomerPortal(container) {
         });
 
         await Data.saveOrder({ customer_id: user.id, items });
-        alert('Siparisiniz basariyla kaydedildi.');
+        alert('Siparişiniz başarıyla kaydedildi.');
         await renderCustomerPortal(container);
     });
 }
@@ -645,27 +645,27 @@ async function renderCustomers(container) {
                 <i data-lucide="upload"></i> Excel'den Aktar
             </button>
             <button class="btn btn-primary" id="btn-add-customer">
-                <i data-lucide="user-plus"></i> Yeni Musteri Ekle
+                <i data-lucide="user-plus"></i> Yeni Müşteri Ekle
             </button>
         </div>
         
         <div id="bulk-actions-bar" class="hidden" style="margin-bottom: 1.5rem; background: #fff7ed; padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid #fdba74; display: flex; align-items: center; gap: 1.5rem;">
-            <span id="selection-count" style="font-weight: 700; color: #ea580c; font-size: 0.95rem;">0 Secili</span>
+            <span id="selection-count" style="font-weight: 700; color: #ea580c; font-size: 0.95rem;">0 Seçili</span>
             <div style="height: 24px; width: 1px; background: #fdba74;"></div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <label style="font-size: 0.9rem; font-weight: 600; color: #9a3412;">Toplu Bolge Degistir:</label>
+                <label style="font-size: 0.9rem; font-weight: 600; color: #9a3412;">Toplu Bölge Değiştir:</label>
                 <select id="bulk-region-select" class="form-control" style="width: auto; padding: 0.3rem 0.6rem; height: auto; border-color: #fdba74;">
                     <option value="BOSNA">BOSNA</option>
-                    <option value="CARSI">CARSI</option>
-                    <option value="MERAM">MERAM SANAYI</option>
+                    <option value="ÇARŞI">ÇARŞI</option>
+                    <option value="MERAM">MERAM SANAYİ</option>
                 </select>
             </div>
             <button class="btn btn-primary" id="btn-apply-bulk" style="padding: 0.5rem 1.2rem; background: #ea580c; border: none;">Uygula</button>
             <div style="flex-grow: 1;"></div>
             <button class="btn" id="btn-delete-bulk" style="background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 0.5rem 1.2rem; font-weight: 600;">
-                <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 4px;"></i> Secilenleri Sil
+                <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 4px;"></i> Seçilenleri Sil
             </button>
-            <button class="btn" id="btn-cancel-bulk" style="background: white; border: 1px solid #e2e8f0; padding: 0.5rem 1.2rem; color: #64748b;">Vazgec</button>
+            <button class="btn" id="btn-cancel-bulk" style="background: white; border: 1px solid #e2e8f0; padding: 0.5rem 1.2rem; color: #64748b;">Vazgeç</button>
         </div>
 
         <div class="table-container">
@@ -674,11 +674,11 @@ async function renderCustomers(container) {
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" id="select-all-customers"></th>
                         <th style="width: 40px;">#</th>
-                        <th>Musteri Adi</th>
-                        <th>Bolge</th>
+                        <th>Müşteri Adı</th>
+                        <th>Bölge</th>
                         <th>Telefon</th>
-                        <th>Guncel Bakiye</th>
-                        <th>Islemler</th>
+                        <th>Güncel Bakiye</th>
+                        <th>İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -691,10 +691,10 @@ async function renderCustomers(container) {
                                 <td style="font-weight: 600;">${c.name}</td>
                                 <td><span class="badge ${c.region === 'BOSNA' ? 'badge-bosna' : (c.region === 'CARSI' ? 'badge-carsi' : 'badge-meram')}">${c.region === 'CARSI' ? 'CARSI' : (c.region === 'MERAM' ? 'MERAM SANAYI' : (c.region || 'Belirtilmemis'))}</span></td>
                                 <td>${c.phone || '-'}</td>
-                                <td style="font-weight: 700; color: #ef4444">${balance.toLocaleString('tr-TR')} TL</td>
+                                <td style="font-weight: 700; color: #ef4444">${balance.toLocaleString('tr-TR')} ₺</td>
                                 <td>
                                     <button class="btn btn-edit-customer" data-id="${c.id}" style="color: #2563eb; background: #eff6ff;">
-                                        <i data-lucide="edit-2"></i> Duzenle
+                                        <i data-lucide="edit-2"></i> Düzenle
                                     </button>
                                     <button class="btn btn-delete-customer" data-id="${c.id}" style="color: #ef4444; background: #fef2f2;">
                                         <i data-lucide="trash"></i> Sil
@@ -703,7 +703,7 @@ async function renderCustomers(container) {
                             </tr>
                         `;
                     })).then(rows => rows.join(''))}
-                    ${customers.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Henuz musteri yok.</td></tr>' : ''}
+                    ${customers.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Henüz müşteri yok.</td></tr>' : ''}
                 </tbody>
             </table>
         </div>
@@ -735,7 +735,7 @@ function updateBulkBar() {
     const selected = Array.from(checkboxes).filter(cb => cb.checked);
     if (selected.length > 0) {
         bulkBar.classList.remove('hidden');
-        selectionCount.textContent = `${selected.length} Secili`;
+        selectionCount.textContent = `${selected.length} Seçili`;
     } else {
         bulkBar.classList.add('hidden');
     }
