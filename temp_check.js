@@ -1,125 +1,12 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lavaş Fırın Yönetim Sistemi</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- SheetJS for Excel -->
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-</head>
-<body>
-    <!-- Login Overlay -->
-    <div id="login-overlay" class="login-overlay">
-        <div class="login-box">
-            <div class="login-header">
-                <img src="logo.png" alt="Hatay Lavaş Dünyası">
-                <h2>Lavaş Fırın Otomasyon</h2>
-            </div>
-            
-            <div class="login-tabs">
-                <button class="login-tab active" data-role="customer">Müşteri Girişi</button>
-                <button class="login-tab" data-role="admin">Fırın Girişi</button>
-            </div>
-
-            <form id="login-form">
-                <input type="hidden" id="login-role" value="customer">
-                <div class="form-group">
-                    <label id="username-label">Telefon Numaranız</label>
-                    <input type="text" id="login-username" required placeholder="5XX XXX XX XX">
-                </div>
-                <div class="form-group">
-                    <label>Şifre</label>
-                    <input type="password" id="login-password" required placeholder="••••••">
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
-                <p id="login-error" class="error-text hidden">Hatalı giriş, lütfen bilgilerinizi kontrol edin.</p>
-            </form>
-            
-            <div class="login-footer">
-                <p>Yardım için: 05XX XXX XX XX</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="app" class="hidden">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header" style="justify-content: center; padding: 1rem;">
-                <img src="logo.png" alt="Hatay Lavaş Dünyası" style="width: 100%; max-width: 180px; height: auto;">
-            </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-page="dashboard">
-                    <i data-lucide="layout-dashboard"></i> Anasayfa
-                </button>
-                <button class="nav-item" data-page="daily-entry">
-                    <i data-lucide="shopping-cart"></i> Günlük Giriş
-                </button>
-                <button class="nav-item" data-page="customers">
-                    <i data-lucide="users"></i> Müşteriler
-                </button>
-                <button class="nav-item" data-page="products">
-                    <i data-lucide="package"></i> Ürünler
-                </button>
-                <button class="nav-item" data-page="reports">
-                    <i data-lucide="bar-chart-3"></i> Raporlar (Cari)
-                </button>
-            </nav>
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar">F</div>
-                    <div class="user-details">
-                        <span class="user-name">Fırın Sahibi</span>
-                        <span class="user-role">Admin</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="top-header">
-                <h1 id="page-title">Dashboard</h1>
-                <div class="header-actions">
-                    <span id="current-date"></span>
-                    <button class="btn btn-primary" id="btn-export-daily">
-                        <i data-lucide="download"></i> Günlük Excel
-                    </button>
-                </div>
-            </header>
-            
-            <section id="content-area">
-                <!-- Content injected by app.js -->
-            </section>
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="modal-container" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Modal Başlığı</h2>
-                <button id="close-modal" class="btn-close">&times;</button>
-            </div>
-            <div id="modal-body" class="modal-body">
-                <!-- Modal content injected by app.js -->
-            </div>
-        </div>
-    </div>
-
-    <script>
+window.alert('SISTEM YUKLENIYOR...');
 console.log('bundle.js: starting...');
 const SUPABASE_URL = 'https://pktxasnposdltilqufcq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdHhhc25wb3NkbHRpbHF1ZmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzOTQ5NjYsImV4cCI6MjA4OTk3MDk2Nn0.53Zb6UJVo4sXLZB1Y1lmp5EeqOT8IGzYZco99l6gz3Y';
 
-let supabaseClient;
+let supabase;
 try {
     if (window.supabase) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log('bundle.js: Supabase connected.');
     } else {
         console.error('bundle.js: Supabase SDK not found!');
@@ -141,9 +28,9 @@ const Data = {
             return true;
         }
 
-        if (!supabaseClient) return false;
+        if (!supabase) return false;
         
-        const { data, error } = await supabaseClient.from('customers')
+        const { data, error } = await supabase.from('customers')
             .select('*')
             .eq('phone', username)
             .eq('password', password)
@@ -167,7 +54,7 @@ const Data = {
             return true;
         }
         if (auth.role === 'customer' && supabase) {
-            const { data } = await supabaseClient.from('customers').select('*').eq('id', auth.id).maybeSingle();
+            const { data } = await supabase.from('customers').select('*').eq('id', auth.id).maybeSingle();
             if (data) {
                 this.isAdmin = false;
                 this.currentUser = data;
@@ -183,38 +70,38 @@ const Data = {
         localStorage.removeItem('lavas_auth');
     },
 
-    async getCustomers() { return (await supabaseClient.from('customers').select('*').order('name')).data || []; },
-    async getProducts() { return (await supabaseClient.from('products').select('*').order('id')).data || []; },
+    async getCustomers() { return (await supabase.from('customers').select('*').order('name')).data || []; },
+    async getProducts() { return (await supabase.from('products').select('*').order('id')).data || []; },
     async getOrders(date) { 
-        let q = supabaseClient.from('orders').select('*');
+        let q = supabase.from('orders').select('*');
         if(date) q = q.eq('date', date);
         return (await q).data || [];
     },
     async saveCustomer(c) {
         const { id, ...p } = c;
-        if(id) return await supabaseClient.from('customers').update(p).eq('id', id);
-        return await supabaseClient.from('customers').insert([p]);
+        if(id) return await supabase.from('customers').update(p).eq('id', id);
+        return await supabase.from('customers').insert([p]);
     },
-    async deleteCustomer(id) { await supabaseClient.from('customers').delete().eq('id', id); },
+    async deleteCustomer(id) { await supabase.from('customers').delete().eq('id', id); },
     async saveOrder(o) {
         const { id, ...p } = o;
         const today = new Date().toISOString().split('T')[0];
-        const exist = await supabaseClient.from('orders').select('id').eq('customer_id', p.customer_id).eq('date', today).maybeSingle();
-        if(exist.data) await supabaseClient.from('orders').update({...p, date: today}).eq('id', exist.data.id);
-        else await supabaseClient.from('orders').insert([{...p, date: today}]);
+        const exist = await supabase.from('orders').select('id').eq('customer_id', p.customer_id).eq('date', today).maybeSingle();
+        if(exist.data) await supabase.from('orders').update({...p, date: today}).eq('id', exist.data.id);
+        else await supabase.from('orders').insert([{...p, date: today}]);
         await this.updateTransactionFromOrder(p);
     },
     async updateTransactionFromOrder(o) {
         const today = new Date().toISOString().split('T')[0];
         let total = 0;
         o.items.forEach(i => total += i.quantity * i.price);
-        const exist = await supabaseClient.from('transactions').select('id').eq('customer_id', o.customer_id).eq('date', today).eq('ref', 'ORDER').maybeSingle();
+        const exist = await supabase.from('transactions').select('id').eq('customer_id', o.customer_id).eq('date', today).eq('ref', 'ORDER').maybeSingle();
         const payload = { customer_id: o.customer_id, date: today, type: 'DEBIT', amount: total, description: 'Siparis', ref: 'ORDER' };
-        if(exist.data) await supabaseClient.from('transactions').update(payload).eq('id', exist.data.id);
-        else await supabaseClient.from('transactions').insert([payload]);
+        if(exist.data) await supabase.from('transactions').update(payload).eq('id', exist.data.id);
+        else await supabase.from('transactions').insert([payload]);
     },
     async getTransactions(cId) {
-        let q = supabaseClient.from('transactions').select('*').order('date', {ascending:false});
+        let q = supabase.from('transactions').select('*').order('date', {ascending:false});
         if(cId) q = q.eq('customer_id', cId);
         return (await q).data || [];
     },
@@ -223,7 +110,7 @@ const Data = {
         return txs.reduce((acc, t) => t.type === 'DEBIT' ? acc + parseFloat(t.amount) : acc - parseFloat(t.amount), 0);
     },
     async addPayment(cId, amt, desc) {
-        await supabaseClient.from('transactions').insert([{
+        await supabase.from('transactions').insert([{
             customer_id: cId, date: new Date().toISOString().split('T')[0],
             type: 'CREDIT', amount: amt, description: desc || 'Tahsilat', ref: 'PAYMENT'
         }]);
@@ -1180,6 +1067,3 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-</script>
-</body>
-</html>
